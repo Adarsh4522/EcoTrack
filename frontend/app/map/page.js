@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import Sidebar from '../components/Sidebar';
 
 const observations = [
   {
@@ -74,55 +75,56 @@ export default function MapPage() {
   });
 
   return (
-    <div className='min-h-screen bg-gray-100 text-gray-800'>
+    <div className='min-h-screen bg-[#f1f0e5] text-[#294936]'>
       <div className='flex min-h-screen'>
-        {/* Sidebar */}
-        <aside className='hidden w-64 shrink-0 bg-white p-6 shadow-sm md:block'>
-          <h1 className='mb-1 text-2xl font-bold text-green-700'>EcoTrack</h1>
+        <Sidebar />
 
-          <p className='mb-10 text-xs text-gray-500'>
+        <aside className='hidden w-64 shrink-0 border-r border-[#e4e2d5] bg-[#f9f7ed] p-6 shadow-sm md:block'>
+          <h1 className='mb-1 text-2xl font-bold text-[#315c45]'>EcoTrack</h1>
+
+          <p className='mb-10 text-xs text-[#777d70]'>
             Monitor. Detect. Respond. Protect.
           </p>
 
           <nav className='space-y-2'>
             <Link
               href='/dashboard'
-              className='block rounded-lg px-4 py-3 text-gray-600 hover:bg-green-50'
+              className='block rounded-lg px-4 py-3 text-[#536456] transition hover:bg-[#e5ecdd] hover:text-[#315c45]'
             >
               Dashboard
             </Link>
 
             <Link
               href='/map'
-              className='block rounded-lg bg-green-100 px-4 py-3 font-semibold text-green-700'
+              className='block rounded-lg bg-[#e5ecdd] px-4 py-3 font-semibold text-[#315c45]'
             >
               India Map
             </Link>
 
             <Link
               href='/observations'
-              className='block rounded-lg px-4 py-3 text-gray-600 hover:bg-green-50'
+              className='block rounded-lg px-4 py-3 text-[#536456] transition hover:bg-[#e5ecdd] hover:text-[#315c45]'
             >
               Observations
             </Link>
 
             <Link
               href='/incidents'
-              className='block rounded-lg px-4 py-3 text-gray-600 hover:bg-green-50'
+              className='block rounded-lg px-4 py-3 text-[#536456] transition hover:bg-[#e5ecdd] hover:text-[#315c45]'
             >
               Incidents
             </Link>
 
             <Link
               href='/officers'
-              className='block rounded-lg px-4 py-3 text-gray-600 hover:bg-green-50'
+              className='block rounded-lg px-4 py-3 text-[#536456] transition hover:bg-[#e5ecdd] hover:text-[#315c45]'
             >
               Officers
             </Link>
 
             <Link
               href='/reports'
-              className='block rounded-lg px-4 py-3 text-gray-600 hover:bg-green-50'
+              className='block rounded-lg px-4 py-3 text-[#536456] transition hover:bg-[#e5ecdd] hover:text-[#315c45]'
             >
               Reports
             </Link>
@@ -134,18 +136,18 @@ export default function MapPage() {
           {/* Header */}
           <div className='mb-7 flex flex-wrap items-center justify-between gap-4'>
             <div>
-              <h2 className='text-2xl font-bold text-gray-800'>
+              <h2 className='text-2xl font-bold text-[#294936]'>
                 India Fire Monitoring Map
               </h2>
 
-              <p className='mt-1 text-sm text-gray-500'>
+              <p className='mt-1 text-sm text-[#777d70]'>
                 View and monitor satellite-based fire observations across India.
               </p>
             </div>
 
             <Link
               href='/dashboard'
-              className='rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50'
+              className='rounded-lg border border-[#dedccd] bg-[#f9f7ed] px-4 py-2 text-sm font-medium text-[#315c45] transition hover:bg-[#e5ecdd]'
             >
               Back to Dashboard
             </Link>
@@ -153,38 +155,40 @@ export default function MapPage() {
 
           {/* Summary Cards */}
           <div className='mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3'>
-            <div className='rounded-xl bg-white p-5 shadow-sm'>
-              <p className='text-sm text-gray-500'>Total Observations</p>
-              <h3 className='mt-2 text-2xl font-bold'>2,486</h3>
+            <div className='rounded-xl border border-[#e6e3d6] bg-[#f9f7ed] p-5 shadow-sm'>
+              <p className='text-sm text-[#777d70]'>Total Observations</p>
+              <h3 className='mt-2 text-2xl font-bold text-[#294936]'>2,486</h3>
             </div>
 
-            <div className='rounded-xl bg-white p-5 shadow-sm'>
-              <p className='text-sm text-gray-500'>Pending Review</p>
-              <h3 className='mt-2 text-2xl font-bold text-red-500'>186</h3>
+            <div className='rounded-xl border border-[#e6e3d6] bg-[#f9f7ed] p-5 shadow-sm'>
+              <p className='text-sm text-[#777d70]'>Pending Review</p>
+              <h3 className='mt-2 text-2xl font-bold text-[#c65b4b]'>186</h3>
             </div>
 
-            <div className='rounded-xl bg-white p-5 shadow-sm'>
-              <p className='text-sm text-gray-500'>Locations Displayed</p>
-              <h3 className='mt-2 text-2xl font-bold text-green-600'>
+            <div className='rounded-xl border border-[#e6e3d6] bg-[#f9f7ed] p-5 shadow-sm'>
+              <p className='text-sm text-[#777d70]'>Locations Displayed</p>
+              <h3 className='mt-2 text-2xl font-bold text-[#315c45]'>
                 {filteredObservations.length}
               </h3>
             </div>
           </div>
 
           {/* Filters */}
-          <div className='mb-5 rounded-xl bg-white p-5 shadow-sm'>
-            <h3 className='mb-4 font-semibold'>Filter Observations</h3>
+          <div className='mb-5 rounded-xl border border-[#e6e3d6] bg-[#f9f7ed] p-5 shadow-sm'>
+            <h3 className='mb-4 font-semibold text-[#294936]'>
+              Filter Observations
+            </h3>
 
             <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
               <div>
-                <label className='mb-2 block text-sm text-gray-600'>
+                <label className='mb-2 block text-sm text-[#536456]'>
                   Detection Category
                 </label>
 
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className='w-full rounded-lg border border-gray-200 p-3 outline-none focus:border-green-500'
+                  className='w-full rounded-lg border border-[#dedccd] bg-[#fffef8] p-3 text-[#294936] outline-none transition focus:border-[#315c45] focus:ring-2 focus:ring-[#e5ecdd]'
                 >
                   <option value='All'>All Categories</option>
                   <option value='Crop Burning'>Crop Burning</option>
@@ -194,14 +198,14 @@ export default function MapPage() {
               </div>
 
               <div>
-                <label className='mb-2 block text-sm text-gray-600'>
+                <label className='mb-2 block text-sm text-[#536456]'>
                   Incident Status
                 </label>
 
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className='w-full rounded-lg border border-gray-200 p-3 outline-none focus:border-green-500'
+                  className='w-full rounded-lg border border-[#dedccd] bg-[#fffef8] p-3 text-[#294936] outline-none transition focus:border-[#315c45] focus:ring-2 focus:ring-[#e5ecdd]'
                 >
                   <option value='All'>All Statuses</option>
                   <option value='Pending Review'>Pending Review</option>
@@ -215,11 +219,13 @@ export default function MapPage() {
           </div>
 
           {/* Map */}
-          <div className='overflow-hidden rounded-xl bg-white p-3 shadow-sm'>
+          <div className='overflow-hidden rounded-xl border border-[#e6e3d6] bg-[#f9f7ed] p-3 shadow-sm'>
             <div className='mb-3 flex flex-wrap items-center justify-between gap-2 px-2'>
-              <h3 className='font-semibold'>Observation Locations</h3>
+              <h3 className='font-semibold text-[#294936]'>
+                Observation Locations
+              </h3>
 
-              <span className='text-xs text-gray-500'>
+              <span className='text-xs text-[#777d70]'>
                 Sample demonstration data
               </span>
             </div>
@@ -258,7 +264,7 @@ export default function MapPage() {
             </MapContainer>
 
             {/* Legend */}
-            <div className='flex flex-wrap gap-5 px-3 py-4 text-sm'>
+            <div className='flex flex-wrap gap-5 px-3 py-4 text-sm text-[#536456]'>
               <span className='flex items-center gap-2'>
                 <span className='h-3 w-3 rounded-full bg-red-500'></span>
                 Crop Burning
@@ -277,8 +283,8 @@ export default function MapPage() {
           </div>
 
           {/* Information Note */}
-          <div className='mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4'>
-            <p className='text-sm text-yellow-800'>
+          <div className='mt-5 rounded-xl border border-[#e7d8a9] bg-[#f6f0dc] p-4'>
+            <p className='text-sm text-[#78632d]'>
               <strong>Note:</strong> Satellite observations indicate possible
               thermal anomalies. They do not independently confirm the cause of
               a fire. Each observation requires appropriate review and
