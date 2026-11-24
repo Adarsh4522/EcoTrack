@@ -1,7 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+
 
 const menuItems = [
   { name: 'Dashboard', href: '/dashboard', icon: '▦' },
@@ -14,6 +17,28 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+
+    const router = useRouter();
+    const [user, setUser] = useState(null);
+
+useEffect(() => {
+  const storedUser = localStorage.getItem('ecotrack_user');
+
+  if (storedUser) {
+    try {
+      setUser(JSON.parse(storedUser));
+    } catch (error) {
+      console.error('Unable to read user details:', error);
+    }
+  }
+}, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('ecotrack_token');
+    localStorage.removeItem('ecotrack_user');
+
+    router.replace('/login');
+  };
 
   return (
     <aside className='fixed left-0 top-0 z-30 flex h-screen w-64 flex-col border-r border-[#d9dfd0] bg-[#e8eddf]'>
@@ -75,16 +100,34 @@ export default function Sidebar() {
         </div>
 
         {/* Admin profile */}
-        <div className='mt-5 flex items-center gap-3'>
-          <div className='flex h-10 w-10 items-center justify-center rounded-full bg-[#d2dfc9] font-bold text-[#315c45]'>
-            A
-          </div>
+        {/* User profile */}
+<div className='mt-5 flex items-center gap-3'>
+  <div className='flex h-10 w-10 items-center justify-center rounded-full bg-[#d2dfc9] font-bold text-[#315c45]'>
+    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+  </div>
 
-          <div>
-            <p className='text-sm font-bold text-[#354d3b]'>Admin User</p>
-            <p className='text-xs text-[#82907b]'>Administrator</p>
-          </div>
-        </div>
+  <div className='min-w-0'>
+    <p className='truncate text-sm font-bold text-[#354d3b]'>
+      {user?.name || 'Loading...'}
+    </p>
+
+    <p className='text-xs text-[#82907b]'>
+      {user?.role === 'ADMIN'
+        ? 'Administrator'
+        : user?.role === 'DISTRICT_OFFICER'
+          ? 'District Officer'
+          : 'User'}
+    </p>
+  </div>
+</div>
+
+                <button
+          onClick={handleLogout}
+          className='mt-4 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100'
+        >
+          <span>↪</span>
+          Logout
+        </button>
       </div>
     </aside>
   );

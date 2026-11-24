@@ -1,71 +1,11 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '../components/Sidebar';
 
-const stats = [
-  {
-    title: 'Total Observations',
-    value: '2,486',
-    change: '+12.5%',
-    note: 'Satellite detections',
-    icon: '◉',
-  },
-  {
-    title: 'Total Incidents',
-    value: '1,248',
-    change: '+8.2%',
-    note: 'Recorded incidents',
-    icon: '◎',
-  },
-  {
-    title: 'Pending Review',
-    value: '186',
-    change: 'Needs attention',
-    note: 'Awaiting verification',
-    icon: '◷',
-  },
-  {
-    title: 'Resolved Incidents',
-    value: '864',
-    change: '69.2%',
-    note: 'Of total incidents',
-    icon: '✓',
-  },
-];
 
-const activities = [
-  {
-    title: 'New satellite observation detected',
-    location: 'Bathinda, Punjab',
-    time: '10 minutes ago',
-    status: 'New',
-  },
-  {
-    title: 'Incident assigned to field officer',
-    location: 'Hisar, Haryana',
-    time: '35 minutes ago',
-    status: 'Assigned',
-  },
-  {
-    title: 'Incident marked under investigation',
-    location: 'Ludhiana, Punjab',
-    time: '1 hour ago',
-    status: 'Investigating',
-  },
-  {
-    title: 'Incident resolution recorded',
-    location: 'Karnal, Haryana',
-    time: '2 hours ago',
-    status: 'Resolved',
-  },
-];
 
-const states = [
-  { name: 'Punjab', count: 420, percent: 85 },
-  { name: 'Haryana', count: 350, percent: 70 },
-  { name: 'Uttar Pradesh', count: 290, percent: 58 },
-  { name: 'Rajasthan', count: 210, percent: 42 },
-  { name: 'Madhya Pradesh', count: 160, percent: 32 },
-];
 
 function StatCard({ item }) {
   return (
@@ -92,6 +32,173 @@ function StatCard({ item }) {
 }
 
 export default function DashboardPage() {
+
+  const [observations, setObservations] = useState([]);
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('ecotrack_token');
+
+        if (!token) {
+          setError('Authentication token not found.');
+          return;
+        }
+
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        };
+
+        const [observationResponse, incidentResponse] =
+          await Promise.all([
+            fetch('http://localhost:5000/api/observations', {
+              method: 'GET',
+              headers,
+            }),
+            fetch('http://localhost:5000/api/incidents', {
+              method: 'GET',
+              headers,
+            }),
+          ]);
+
+        const observationResult = await observationResponse.json();
+        const incidentResult = await incidentResponse.json();
+
+        if (!observationResponse.ok || !observationResult.success) {
+          throw new Error(
+            observationResult.message || 'Unable to fetch observations.'
+          );
+        }
+
+        if (!incidentResponse.ok || !incidentResult.success) {
+          throw new Error(
+            incidentResult.message || 'Unable to fetch incidents.'
+          );
+        }
+
+        const observationList = Array.isArray(observationResult.data)
+          ? observationResult.data
+          : observationResult.data?.observations || [];
+
+        const incidentList = Array.isArray(incidentResult.data)
+          ? incidentResult.data
+          : incidentResult.data?.incidents || [];
+
+        setObservations(observationList);
+        setIncidents(incidentList);
+      } catch (err) {
+        console.error('Dashboard API error:', err);
+        setError(err.message || 'Unable to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const pendingCount = incidents.filter(
+    (incident) => incident.status === 'PENDING_REVIEW'
+  ).length;
+
+  const resolvedCount = incidents.filter(
+    (incident) => incident.status === 'RESOLVED'
+  ).length;
+
+  const stateCounts = incidents.reduce((acc, incident) => {
+  const stateName = incident.state?.trim();
+
+  if (!stateName) return acc;
+
+  acc[stateName] = (acc[stateName] || 0) + 1;
+  return acc;
+}, {});
+
+const states = Object.entries(stateCounts)
+  .map(([name, count]) => ({ name, count }))
+  .sort((a, b) => b.count - a.count);
+
+const maxStateCount = Math.max(
+  ...states.map((state) => state.count),
+  1
+);
+
+const activities = [...incidents]
+  .sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt) -
+      new Date(a.updatedAt || a.createdAt)
+  )
+  .slice(0, 5)
+  .map((incident) => {
+    const statusLabels = {
+      NEW_OBSERVATION: 'New',
+      PENDING_REVIEW: 'Pending Review',
+      ASSIGNED: 'Assigned',
+      UNDER_INVESTIGATION: 'Investigating',
+      RESOLVED: 'Resolved',
+      DISMISSED: 'Dismissed',
+    };
+
+    const titles = {
+      NEW_OBSERVATION: 'New incident recorded',
+      PENDING_REVIEW: 'Incident pending review',
+      ASSIGNED: 'Incident assigned to field officer',
+      UNDER_INVESTIGATION: 'Incident under investigation',
+      RESOLVED: 'Incident resolution recorded',
+      DISMISSED: 'Incident dismissed',
+    };
+
+    return {
+      title: titles[incident.status] || 'Incident status updated',
+      location: `${incident.district}, ${incident.state}`,
+      time: new Date(
+        incident.updatedAt || incident.createdAt
+      ).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      status: statusLabels[incident.status] || incident.status,
+      incidentId: incident.incidentId,
+    };
+  });
+
+  const stats = [
+    {
+      title: 'Total Observations',
+      value: loading ? '...' : observations.length.toLocaleString('en-IN'),
+      change: 'Live',
+      note: 'Database observations',
+      icon: '◉',
+    },
+    {
+      title: 'Total Incidents',
+      value: loading ? '...' : incidents.length.toLocaleString('en-IN'),
+      change: 'Live',
+      note: 'Recorded incidents',
+      icon: '◎',
+    },
+    {
+      title: 'Pending Review',
+      value: loading ? '...' : pendingCount.toLocaleString('en-IN'),
+      change: 'Live',
+      note: 'Awaiting verification',
+      icon: '◷',
+    },
+    {
+      title: 'Resolved Incidents',
+      value: loading ? '...' : resolvedCount.toLocaleString('en-IN'),
+      change: 'Live',
+      note: 'Resolved records',
+      icon: '✓',
+    },
+  ];
+
   return (
     <div className='min-h-screen bg-[#f1f0e5]'>
       {/* Separate Sidebar Component */}
@@ -168,51 +275,69 @@ export default function DashboardPage() {
               </div>
 
               <div className='space-y-6'>
-                {[
-                  {
-                    label: 'Resolved',
-                    count: 864,
-                    percent: 69,
-                    color: 'bg-[#477b53]',
-                  },
-                  {
-                    label: 'Pending Review',
-                    count: 186,
-                    percent: 15,
-                    color: 'bg-[#d5a34e]',
-                  },
-                  {
-                    label: 'Assigned',
-                    count: 124,
-                    percent: 10,
-                    color: 'bg-[#789b9a]',
-                  },
-                  {
-                    label: 'Under Investigation',
-                    count: 74,
-                    percent: 6,
-                    color: 'bg-[#c98251]',
-                  },
-                ].map((item) => (
-                  <div key={item.label}>
-                    <div className='mb-2 flex justify-between gap-3 text-sm'>
-                      <span className='font-semibold text-[#52664f]'>
-                        {item.label}
-                      </span>
+  {[
+    {
+      label: 'New Observation',
+      status: 'NEW_OBSERVATION',
+      color: 'bg-[#789b9a]',
+    },
+    {
+      label: 'Pending Review',
+      status: 'PENDING_REVIEW',
+      color: 'bg-[#d5a34e]',
+    },
+    {
+      label: 'Assigned',
+      status: 'ASSIGNED',
+      color: 'bg-[#789b9a]',
+    },
+    {
+      label: 'Under Investigation',
+      status: 'UNDER_INVESTIGATION',
+      color: 'bg-[#c98251]',
+    },
+    {
+      label: 'Resolved',
+      status: 'RESOLVED',
+      color: 'bg-[#477b53]',
+    },
+    {
+      label: 'Dismissed',
+      status: 'DISMISSED',
+      color: 'bg-[#929b87]',
+    },
+  ].map((item) => {
+    const count = incidents.filter(
+      (incident) => incident.status === item.status
+    ).length;
 
-                      <span className='text-[#82907b]'>
-                        {item.count} ({item.percent}%)
-                      </span>
-                    </div>
+    const percent =
+      incidents.length > 0
+        ? Math.round((count / incidents.length) * 100)
+        : 0;
 
-                    <div className='h-3 overflow-hidden rounded-full bg-[#e8eadd]'>
-                      <div
-                        className={`h-full rounded-full ${item.color}`}
-                        style={{ width: `${item.percent}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+    return (
+      <div key={item.status}>
+        <div className='mb-2 flex justify-between gap-3 text-sm'>
+          <span className='font-semibold text-[#52664f]'>
+            {item.label}
+          </span>
+
+          <span className='text-[#82907b]'>
+            {loading ? '...' : `${count} (${percent}%)`}
+          </span>
+        </div>
+
+        <div className='h-3 overflow-hidden rounded-full bg-[#e8eadd]'>
+          <div
+            className={`h-full rounded-full ${item.color}`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+    );
+  })}
+
               </div>
             </div>
 
@@ -236,7 +361,7 @@ export default function DashboardPage() {
                   </div>
 
                   <span className='rounded-full bg-[#f7edda] px-3 py-1.5 text-xs font-bold text-[#a16d3f]'>
-                    Demo
+                    Connected
                   </span>
                 </div>
 
@@ -273,33 +398,51 @@ export default function DashboardPage() {
             {/* State-wise Observations */}
             <div className='rounded-2xl border border-[#e1e2d4] bg-[#f9f7ed] p-6'>
               <h3 className='font-bold text-[#294936]'>
-                State-wise Observations
+                State-wise Incidents
               </h3>
 
               <p className='mt-1 text-sm text-[#82907b]'>
-                Sample observation distribution across states
+                Incident distribution across states
               </p>
 
               <div className='mt-7 space-y-6'>
-                {states.map((state) => (
-                  <div key={state.name}>
-                    <div className='mb-2 flex justify-between gap-3 text-sm'>
-                      <span className='font-semibold text-[#52664f]'>
-                        {state.name}
-                      </span>
+  {loading ? (
+    <p className='text-sm text-[#82907b]'>
+      Loading state-wise data...
+    </p>
+  ) : states.length > 0 ? (
+    states.map((state) => {
+      const percent = Math.round(
+        (state.count / maxStateCount) * 100
+      );
 
-                      <span className='text-[#82907b]'>{state.count}</span>
-                    </div>
+      return (
+        <div key={state.name}>
+          <div className='mb-2 flex justify-between gap-3 text-sm'>
+            <span className='font-semibold text-[#52664f]'>
+              {state.name}
+            </span>
 
-                    <div className='h-2.5 overflow-hidden rounded-full bg-[#e8eadd]'>
-                      <div
-                        className='h-full rounded-full bg-[#58805b]'
-                        style={{ width: `${state.percent}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <span className='text-[#82907b]'>
+              {state.count}
+            </span>
+          </div>
+
+          <div className='h-2.5 overflow-hidden rounded-full bg-[#e8eadd]'>
+            <div
+              className='h-full rounded-full bg-[#58805b]'
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+      );
+    })
+  ) : (
+    <p className='text-sm text-[#82907b]'>
+      No incident records available.
+    </p>
+  )}
+  </div>
             </div>
 
             {/* Recent Activity */}
@@ -322,28 +465,46 @@ export default function DashboardPage() {
               </div>
 
               <div className='mt-5 divide-y divide-[#e7e6da]'>
-                {activities.map((activity, index) => (
-                  <div
-                    key={index}
-                    className='py-4'
-                  >
-                    <div className='flex items-start justify-between gap-3'>
-                      <div>
-                        <p className='text-sm font-semibold text-[#52664f]'>
-                          {activity.title}
-                        </p>
+              {loading ? (
+  <p className='text-sm text-[#82907b]'>
+    Loading recent incidents...
+  </p>
+) : activities.length > 0 ? (
+  activities.map((activity, index) => (
+    <div
+      key={activity.incidentId || index}
+      className='flex items-start justify-between gap-4'
+    >
+      <div>
+        <p className='text-sm font-semibold text-[#52664f]'>
+          {activity.title}
+        </p>
 
-                        <p className='mt-1 text-xs text-[#929b87]'>
-                          {activity.location} · {activity.time}
-                        </p>
-                      </div>
+        <p className='mt-1 text-xs text-[#82907b]'>
+          {activity.location}
+        </p>
 
-                      <span className='shrink-0 rounded-full bg-[#e8eddf] px-2.5 py-1 text-xs font-semibold text-[#52664f]'>
-                        {activity.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+        <p className='mt-1 text-xs text-[#82907b]'>
+          {activity.incidentId}
+        </p>
+      </div>
+
+      <div className='shrink-0 text-right'>
+        <p className='text-xs text-[#82907b]'>
+          {activity.time}
+        </p>
+
+        <span className='mt-2 inline-block rounded-full bg-[#e8eadd] px-3 py-1 text-xs font-semibold text-[#52664f]'>
+          {activity.status}
+        </span>
+      </div>
+    </div>
+  ))
+) : (
+  <p className='text-sm text-[#82907b]'>
+    No recent incidents available.
+  </p>
+)} 
               </div>
             </div>
           </section>
