@@ -1,5 +1,5 @@
 'use client';
-
+import { useRouter } from "next/navigation";
 import { useState } from 'react';
 import Link from 'next/link';
 import './login.css';
@@ -168,24 +168,67 @@ function NatureIllustration() {
 }
 
 export default function LoginPage() {
+
+  const router = useRouter();
+  
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
 
-  function handleLogin(e) {
-    e.preventDefault();
 
-    if (!email || !password) {
-      setMessage('Please enter your email and password.');
+  const handleLogin = async (e) => {
+  e.preventDefault();
+
+  if (!email || !password) {
+    setMessage("Please enter email and password.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      setMessage(result.message || "Login failed.");
       return;
     }
 
-    // Demo only. Real authentication will be connected to Express later.
-    setMessage(
-      'Login form is ready. Backend authentication is not connected yet.',
+    // Store authentication details
+    localStorage.setItem("ecotrack_token", result.token);
+    localStorage.setItem(
+      "ecotrack_user",
+      JSON.stringify(result.data)
     );
+
+    setMessage("Login successful!");
+
+    // Redirect according to user role
+    if (result.data.role === "ADMIN") {
+      router.push("/dashboard");
+    } else if (result.data.role === "DISTRICT_OFFICER") {
+      router.push("/incidents");
+    } else {
+      setMessage("Invalid user role.");
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    setMessage("Unable to connect to the backend.");
   }
+};
 
   return (
     <main className='login-page'>

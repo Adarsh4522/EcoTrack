@@ -1,77 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '../components/Sidebar';
 
-const initialIncidents = [
-  {
-    id: 'INC-1024',
-    location: 'Bathinda, Punjab',
-    district: 'Bathinda',
-    date: '20 Nov 2026',
-    time: '09:35 AM',
-    source: 'NASA FIRMS',
-    confidence: 'High',
-    status: 'Pending Review',
-    officer: 'Not Assigned',
-  },
-  {
-    id: 'INC-1023',
-    location: 'Hisar, Haryana',
-    district: 'Hisar',
-    date: '20 Nov 2026',
-    time: '08:50 AM',
-    source: 'NASA FIRMS',
-    confidence: 'High',
-    status: 'Assigned',
-    officer: 'Rahul Sharma',
-  },
-  {
-    id: 'INC-1022',
-    location: 'Ludhiana, Punjab',
-    district: 'Ludhiana',
-    date: '19 Nov 2026',
-    time: '04:20 PM',
-    source: 'NASA FIRMS',
-    confidence: 'Medium',
-    status: 'Under Investigation',
-    officer: 'Amit Verma',
-  },
-  {
-    id: 'INC-1021',
-    location: 'Karnal, Haryana',
-    district: 'Karnal',
-    date: '19 Nov 2026',
-    time: '02:15 PM',
-    source: 'NASA FIRMS',
-    confidence: 'High',
-    status: 'Resolved',
-    officer: 'Priya Singh',
-  },
-  {
-    id: 'INC-1020',
-    location: 'Amritsar, Punjab',
-    district: 'Amritsar',
-    date: '18 Nov 2026',
-    time: '11:10 AM',
-    source: 'NASA FIRMS',
-    confidence: 'Low',
-    status: 'Dismissed',
-    officer: 'Not Assigned',
-  },
-  {
-    id: 'INC-1019',
-    location: 'Rohtak, Haryana',
-    district: 'Rohtak',
-    date: '18 Nov 2026',
-    time: '10:05 AM',
-    source: 'NASA FIRMS',
-    confidence: 'Medium',
-    status: 'Pending Review',
-    officer: 'Not Assigned',
-  },
-];
+
 
 const statusOptions = [
   'All Status',
@@ -121,10 +54,87 @@ function ConfidenceBadge({ confidence }) {
 }
 
 export default function IncidentsPage() {
-  const [incidents, setIncidents] = useState(initialIncidents);
+ const [incidents, setIncidents] = useState([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [selectedIncident, setSelectedIncident] = useState(null);
+
+  useEffect(() => {
+  const fetchIncidents = async () => {
+    try {
+      const token = localStorage.getItem('ecotrack_token');
+
+      if (!token) {
+        throw new Error('Authentication token not found. Please log in again.');
+      }
+
+      const response = await fetch(
+        'http://localhost:5000/api/incidents',
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Unable to fetch incidents.');
+      }
+
+      const incidentList = Array.isArray(result.data)
+        ? result.data
+        : result.data?.incidents || [];
+
+      const statusLabels = {
+        NEW_OBSERVATION: 'New',
+        PENDING_REVIEW: 'Pending Review',
+        ASSIGNED: 'Assigned',
+        UNDER_INVESTIGATION: 'Under Investigation',
+        RESOLVED: 'Resolved',
+        DISMISSED: 'Dismissed',
+      };
+
+      const formattedIncidents = incidentList.map((incident) => {
+        const reportedDate = new Date(incident.reportedAt || incident.createdAt);
+
+        return {
+          id: incident.incidentId,
+          location: `${incident.district}, ${incident.state}`,
+          district: incident.district,
+          date: reportedDate.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }),
+          time: reportedDate.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          source: 'Incident Database',
+          confidence: 'Not Available',
+          status: statusLabels[incident.status] || incident.status,
+          officer: incident.assignedOfficerId
+            ? 'Officer Assigned'
+            : 'Not Assigned',
+        };
+      });
+
+      setIncidents(formattedIncidents);
+    } catch (err) {
+      console.error('Incidents API error:', err);
+      setError(err.message || 'Unable to load incidents.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchIncidents();
+}, []);
 
   const filteredIncidents = useMemo(() => {
     return incidents.filter((incident) => {
@@ -321,6 +331,23 @@ export default function IncidentsPage() {
                 </thead>
 
                 <tbody className='divide-y divide-[#e7e6da]'>
+
+                {loading && (
+  <tr>
+    <td colSpan='7' className='px-6 py-12 text-center text-sm text-[#82907b]'>
+      Loading incidents...
+    </td>
+  </tr>
+)}
+
+{!loading && error && (
+  <tr>
+    <td colSpan='7' className='px-6 py-12 text-center text-sm text-red-600'>
+      {error}
+    </td>
+  </tr>
+)}
+
                   {filteredIncidents.map((incident) => (
                     <tr
                       key={incident.id}
@@ -376,7 +403,7 @@ export default function IncidentsPage() {
                     </tr>
                   ))}
 
-                  {filteredIncidents.length === 0 && (
+                  {!loading && !error && filteredIncidents.length === 0 && (
                     <tr>
                       <td
                         colSpan='7'
